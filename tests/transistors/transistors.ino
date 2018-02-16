@@ -1,13 +1,37 @@
 byte val;
+const byte pin = 3;
+const boolean mode_fade = true;
+int i = 0;
 
 void setup()
 {
-	pinMode(3, OUTPUT);
+	pinMode(pin, OUTPUT);
 }
 
 void loop()
 {
-	val = analogRead(A0) / 4;
-	analogWrite(3, val);
-	delay(50);
+	if (!mode_fade)
+	{
+		val = analogRead(A0) / 4;
+		analogWrite(pin, val);
+		delay(50);
+	}
+	else
+	{
+		while(i < 255)
+		{
+			i++;
+			analogWrite(pin, i);
+			delay(5);
+		}
+		delay(2000);
+		while(i > 0)
+		{
+			i--;
+			analogWrite(pin, i);
+			delay(5);
+		}
+		delay(2000);
+	}
 }
+	
