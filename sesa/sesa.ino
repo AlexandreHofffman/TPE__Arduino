@@ -1,3 +1,10 @@
+/*-----------------INFOS-----------------*\
+	AUTHOR : Tahitoa L
+	PROJET : prgm de commande systeme
+eclairage SESA
+	VERSION : 0.1
+\*---------------------------------------*/
+
 
 class analogSensor
 {
