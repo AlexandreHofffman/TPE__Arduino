@@ -411,7 +411,7 @@ timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
 timer blink(330); // Minuteur pour le clignotement des lumières
 timer tempsAccelero(500);
-hysteresis arretY()
+hysteresis arretY(); // Hysteresis pour capter les mouvements axe Y grace a accelerometre
 
 void setup()
 {
