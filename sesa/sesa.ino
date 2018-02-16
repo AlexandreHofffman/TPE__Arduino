@@ -81,20 +81,6 @@ class timer
 		int getDelay();
 };
 
-class hysteresis
-{
-	private:
-		int savedValue;
-		boolean currentState;
-		int seuilHaut;
-		int seuilBas;
-	public:
-		hysteresis();
-		void setUp(int aSeuilBas,  int aSeuilHaut);
-		void setValue(int value);
-		int getState();
-};
-
 
 
 analogSensor::analogSensor(byte aPin)
@@ -343,39 +329,6 @@ int timer::getDelay()
 	return delayCurrent;
 }
 
-hysteresis::hysteresis()
-{
-	
-}
-
-void hysteresis::setUp(int aSeuilBas,  int aSeuilHaut)
-{
-	seuilHaut = aSeuilHaut;
-	seuilBas = aSeuilBas;
-	currentState = false;
-}
-
-void hysteresis::setValue(int value)
-{
-	savedValue = value;
-}
-
-int hysteresis::getState()
-{
-	if (savedValue > seuilHaut && !currentState)
-	{
-		currentState = true;
-	}
-	if (savedValue < seuilBas && currentState)
-	{
-		currentState = false;
-	}
-
-	return int(currentState);
-}
-
-
-
 
 const unsigned int timerValue = 5000;
 const float diametreRoue = 31.85;
@@ -394,12 +347,6 @@ float currentVitesse;
 float distanceRoue;
 boolean blinkOn = false;
 
-// INTEGRATION ACCELOROMETRE.begin
-#include<Wire.h>
-const int MPU_addr=0x68;  // I2C address of the MPU-6050
-int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
-// INTEGRATION ACCELOROMETRE.end
-
 lampe ledRouge(11);
 lampe ledBlanc(10);
 binaryLampe ledStop(9);
@@ -410,8 +357,11 @@ digitalSensor frein(13);
 timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
 timer blink(330); // Minuteur pour le clignotement des lumières
+<<<<<<< HEAD
 timer tempsAccelero(500);
 hysteresis arretY(); // Hysteresis pour capter les mouvements axe Y grace a accelerometre
+=======
+>>>>>>> parent of 23fd374... Intégration accéléromètre sesa.ino
 
 void setup()
 {
@@ -422,21 +372,12 @@ void setup()
 	photoSensor.setUp(715, 745); 
 	aimantVitesse.setUp(2);
 	frein.setUp(1);
-	distanceRoue = diametreRoue * PI / 100;
-	blink.init();
-	tempsAccelero.init();
-	arretY(580, 620);
-	vitesse0 = false;
-	blinkOn = false;
-	//Accelero.setUp.begin
-	Wire.begin();
-  	Wire.beginTransmission(MPU_addr);
-	Wire.write(0x6B);  // PWR_MGMT_1 register
-	Wire.write(0);     // set to zero (wakes up the MPU-6050)
- 	Wire.endTransmission(true);
- 	//Accelero.setUp.end
 	Serial.begin(9600);
 	Serial.println("Fin du setUp !");
+	distanceRoue = diametreRoue * PI / 100;
+	blink.init();
+	vitesse0 = false;
+	blinkOn = false;
 }
 
 void loop()
@@ -451,24 +392,6 @@ void loop()
 	aimantCounter = 0;
 	while(tempsVitesse.timeIsUp() == 0 && !stop)
 	{
-		//Accelero.loop.begin
-		if (tempsAccelero.timeIsUp() == 1)
-		{
-			Wire.beginTransmission(MPU_addr);
-			Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-			Wire.endTransmission(false);
-			Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
-			AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
-			AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-			AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-			Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-			GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
-			GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
-			GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-			arretY.setValue(AcY);
-		}
-		//Accelero.loop.end
-
 		aimantVitesse.setPreviousState();
 		photoSensor.setPreviousState();
 		frein.setPreviousState();
@@ -476,8 +399,7 @@ void loop()
 		savedState = aimantVitesse.getState();
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
-		//Accelero.modif
-		if (tempsFrein.timeIsUp() == 1 || arretY.getState() == 0) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
+		if (tempsFrein.timeIsUp() == 1)
 		{
 			Serial.println("Le velo est a l'ARRET !");
 			stop = true;
