@@ -5,11 +5,17 @@ int i = 0;
 
 void setup()
 {
+<<<<<<< Updated upstream
 	pinMode(pin, OUTPUT);
+=======
+	Serial.begin(9600);
+	pinMode(3, OUTPUT);
+>>>>>>> Stashed changes
 }
 
 void loop()
 {
+<<<<<<< Updated upstream
 	if (!mode_fade)
 	{
 		val = analogRead(A0) / 4;
@@ -35,3 +41,10 @@ void loop()
 	}
 }
 	
+=======
+	val = analogRead(A0) / 4;
+	analogWrite(3, val);
+  Serial.println(val);
+	delay(5);
+}
+>>>>>>> Stashed changes
