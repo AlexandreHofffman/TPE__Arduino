@@ -54,7 +54,7 @@ conserv::conserv(int aNb)
   nb = aNb;
 }
 
-void setLastState(boolean state)
+void conserv::setLastState(boolean state)
 {
   if (state)
   {
@@ -62,7 +62,7 @@ void setLastState(boolean state)
   }
 }
 
-int getState()
+int conserv::getState()
 {
   if (count > 0)
   {
@@ -74,7 +74,7 @@ int getState()
   }
 }
 
-void refresh()
+void conserv::refresh()
 {
    if (count > 0)
   {
@@ -84,7 +84,7 @@ void refresh()
 
 hysteresis hautY(1500, 2000);
 hysteresis basY(-2000, -1500);
-hysteresis hautX(18500, 19000);
+hysteresis hautX(19000, 19500);
 hysteresis basX(14200, 14700);
 conserv axeY(25);
 conserv axeX(25);
@@ -129,19 +129,19 @@ void loop(){
   axeX.refresh();
   if (hautY.getState() == 1 || basY.getState() == 0)
   {
-  	axeY(true);
+  	axeY.setLastState(true);
   }
   else
   {
-  	axeY(false);
+  	axeY.setLastState(false);
   }
   if (hautX.getState() == 1 || basX.getState() == 0)
   {
-    axeX(true);
+    axeX.setLastState(true);
   }
   else
   {
-    axeX(false);
+    axeX.setLastState(false);
   }
   if (axeY.getState() == 1)
   {
