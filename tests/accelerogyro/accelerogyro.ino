@@ -40,9 +40,9 @@ int hysteresis::getState()
 class conserv
 {
   private:
+    unsigned int count;
     unsigned int nb;
   public:
-    int counter;
     conserv(int aNb);
     void setLastState(boolean state);  
     int getState();
@@ -52,20 +52,19 @@ class conserv
 conserv::conserv(int aNb)
 {
   nb = aNb;
-  counter = 0;
 }
 
-void conserv::setLastState(boolean state)
+void setLastState(boolean state)
 {
   if (state)
   {
-    counter = nb;
+    count = nb;
   }
 }
 
-int conserv::getState()
+int getState()
 {
-  if (counter > 0)
+  if (count > 0)
   {
     return 1;
   }
@@ -75,17 +74,20 @@ int conserv::getState()
   }
 }
 
-void conserv::refresh()
+void refresh()
 {
-  if (counter > 0)
+   if (count > 0)
   {
-    counter--;
+    count--;
   }
 }
 
 hysteresis hautY(1500, 2000);
 hysteresis basY(-2000, -1500);
-conserv axeY(10);
+hysteresis hautX(18500, 19000);
+hysteresis basX(14200, 14700);
+conserv axeY(25);
+conserv axeX(25);
 
 #include<Wire.h>
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -118,17 +120,28 @@ void loop(){
   Serial.print(" | GyX = "); Serial.print(GyX);
   Serial.print(" | GyY = "); Serial.print(GyY);
   Serial.print(" | GyZ = "); Serial.println(GyZ);*/
-  Serial.println(AcY);
+  Serial.println(AcX);
   hautY.setValue(AcY);
   basY.setValue(AcY);
+  hautX.setValue(AcX);
+  basX.setValue(AcX);
   axeY.refresh();
+  axeX.refresh();
   if (hautY.getState() == 1 || basY.getState() == 0)
   {
-  	axeY.setLastState(true);
+  	axeY(true);
   }
   else
   {
-  	axeY.setLastState(false);
+  	axeY(false);
+  }
+  if (hautX.getState() == 1 || basX.getState() == 0)
+  {
+    axeX(true);
+  }
+  else
+  {
+    axeX(false);
   }
   if (axeY.getState() == 1)
   {
@@ -137,6 +150,14 @@ void loop(){
   else
   {
     digitalWrite(4, LOW);
+  }
+  if (axeX.getState() == 1)
+  {
+    digitalWrite(3, HIGH);
+  }
+  else
+  {
+    digitalWrite(3, LOW);
   }
   delay(20);
 }
