@@ -86,8 +86,8 @@ hysteresis hautX(19000, 19500);
 hysteresis basX(14200, 14700);
 hysteresis hautY(1500, 2000);
 hysteresis basY(-2000, -1500);
-hysteresis hautZ(2500, 2800);
-hysteresis basZ(-2800, 2500);
+hysteresis hautZ(2200, 2600);
+hysteresis basZ(-1400, -1000);
 conserv axeX(25);
 conserv axeY(25);
 conserv axeZ(25);
@@ -118,14 +118,13 @@ void loop(){
   GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-  /*Serial.print("AcX = "); Serial.print(AcX);
+  Serial.print("AcX = "); Serial.print(AcX);
   Serial.print(" | AcY = "); Serial.print(AcY);
   Serial.print(" | AcZ = "); Serial.print(AcZ);
   Serial.print(" | Tmp = "); Serial.print(Tmp/340.00+36.53);  //equation for temperature in degrees C from datasheet
   Serial.print(" | GyX = "); Serial.print(GyX);
   Serial.print(" | GyY = "); Serial.print(GyY);
-  Serial.print(" | GyZ = "); Serial.println(GyZ);*/
-  Serial.println(AcZ);
+  Serial.print(" | GyZ = "); Serial.println(GyZ);
   hautX.setValue(AcX);
   basX.setValue(AcX);
   hautY.setValue(AcY);
@@ -161,15 +160,7 @@ void loop(){
     axeZ.setLastState(false);
   }
 
-  if (axeY.getState() == 1)
-  {
-    digitalWrite(4, HIGH);
-  }
-  else
-  {
-    digitalWrite(4, LOW);
-  }
-  if (axeX.getState() == 1)
+  if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1)
   {
     digitalWrite(3, HIGH);
   }
@@ -177,13 +168,4 @@ void loop(){
   {
     digitalWrite(3, LOW);
   }
-  if (axeZ.getState() == 1)
-  {
-    digitalWrite(5, HIGH);
-  }
-  else
-  {
-    digitalWrite(5, LOW);
-  }
-  delay(20);
 }
