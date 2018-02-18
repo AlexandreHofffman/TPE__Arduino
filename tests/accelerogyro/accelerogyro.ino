@@ -82,12 +82,15 @@ void conserv::refresh()
   }
 }
 
-hysteresis hautY(1500, 2000);
-hysteresis basY(-2000, -1500);
 hysteresis hautX(19000, 19500);
 hysteresis basX(14200, 14700);
-conserv axeY(25);
+hysteresis hautY(1500, 2000);
+hysteresis basY(-2000, -1500);
+hysteresis hautZ(2500, 2800);
+hysteresis basZ(-2800, 2500);
 conserv axeX(25);
+conserv axeY(25);
+conserv axeZ(25);
 
 #include<Wire.h>
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -100,6 +103,8 @@ void setup(){
   Wire.endTransmission(true);
   Serial.begin(9600);
   pinMode(4, OUTPUT);
+  pinMode(3, OUTPUT);
+  pinMode(5, OUTPUT);
 }
 void loop(){
   Wire.beginTransmission(MPU_addr);
@@ -120,13 +125,17 @@ void loop(){
   Serial.print(" | GyX = "); Serial.print(GyX);
   Serial.print(" | GyY = "); Serial.print(GyY);
   Serial.print(" | GyZ = "); Serial.println(GyZ);*/
-  Serial.println(AcX);
-  hautY.setValue(AcY);
-  basY.setValue(AcY);
+  Serial.println(AcZ);
   hautX.setValue(AcX);
   basX.setValue(AcX);
-  axeY.refresh();
+  hautY.setValue(AcY);
+  basY.setValue(AcY);
+  hautZ.setValue(AcZ);
+  basZ.setValue(AcZ);
   axeX.refresh();
+  axeY.refresh();
+  axeZ.refresh();
+ 
   if (hautY.getState() == 1 || basY.getState() == 0)
   {
   	axeY.setLastState(true);
@@ -143,6 +152,15 @@ void loop(){
   {
     axeX.setLastState(false);
   }
+  if (hautZ.getState() == 1 || basZ.getState() == 0)
+  {
+    axeZ.setLastState(true);
+  }
+  else
+  {
+    axeZ.setLastState(false);
+  }
+
   if (axeY.getState() == 1)
   {
     digitalWrite(4, HIGH);
@@ -158,6 +176,14 @@ void loop(){
   else
   {
     digitalWrite(3, LOW);
+  }
+  if (axeZ.getState() == 1)
+  {
+    digitalWrite(5, HIGH);
+  }
+  else
+  {
+    digitalWrite(5, LOW);
   }
   delay(20);
 }
