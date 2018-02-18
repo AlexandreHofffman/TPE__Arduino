@@ -1,19 +1,54 @@
-/*-----------------INFOS-----------------*\
+/*----------------------INFOS----------------------*\
 	AUTHOR : Tahitoa L
-	PROJET : prgm de commande systeme
-eclairage SESA
+	PROJET : prgm de commande systeme eclairage SESA
 	VERSION : 0.1
-\*---------------------------------------*/
+\*-------------------------------------------------*/
 
 class SESA
 {
 	private:
-		boolean arret;
+		//Paramètres
 		
+		//variables d'entrée
+		boolean arret;
+		//variables de sorties
+		byte etatAvant;
+		byte etatArriere;
+		byte etatLateral;
 	public:
-
+		//Paramètres
+		float diametreRoue;
+		//Constructeur
+		SESA(float aDiametreRoue);
+		//SetUp
+		void setUp();
+		//Méthodes mofidication
+		void setArret(boolean aArret);
+		//Méthodes récupérer
+		int getArret();
 }
 
+SESA::SESA(float aDiametreRoue)
+{
+	diametreRoue = aDiametreRoue;
+}
+
+void SESA::setArret(boolean aArret)
+{
+	if (aArret)
+	{
+		arret = true;
+	}
+	else
+	{
+		arret = false;
+	}
+}
+
+int SESA::getArret()
+{
+	return int(arret);
+}
 
 class analogSensor
 {
@@ -394,7 +429,6 @@ int hysteresis::getState()
 
 
 const unsigned int timerValue = 5000;
-const float diametreRoue = 31.85;
 boolean serialDebug = true;
 boolean stop = false;
 boolean stopVitesse = false;
@@ -410,12 +444,7 @@ float currentVitesse;
 float distanceRoue;
 boolean blinkOn = false;
 
-// INTEGRATION ACCELOROMETRE.begin
-#include<Wire.h>
-const int MPU_addr=0x68;  // I2C address of the MPU-6050
-int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
-// INTEGRATION ACCELOROMETRE.end
-
+SESA SESA(31.85);
 lampe ledRouge(11);
 lampe ledBlanc(10);
 binaryLampe ledStop(9);
@@ -427,7 +456,6 @@ timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
 timer blink(330); // Minuteur pour le clignotement des lumières
 timer tempsAccelero(500);
-hysteresis arretY()
 
 void setup()
 {
@@ -440,17 +468,8 @@ void setup()
 	frein.setUp(1);
 	distanceRoue = diametreRoue * PI / 100;
 	blink.init();
-	tempsAccelero.init();
-	arretY(580, 620);
 	vitesse0 = false;
 	blinkOn = false;
-	//Accelero.setUp.begin
-	Wire.begin();
-  	Wire.beginTransmission(MPU_addr);
-	Wire.write(0x6B);  // PWR_MGMT_1 register
-	Wire.write(0);     // set to zero (wakes up the MPU-6050)
- 	Wire.endTransmission(true);
- 	//Accelero.setUp.end
 	Serial.begin(9600);
 	Serial.println("Fin du setUp !");
 }
@@ -467,24 +486,6 @@ void loop()
 	aimantCounter = 0;
 	while(tempsVitesse.timeIsUp() == 0 && !stop)
 	{
-		//Accelero.loop.begin
-		if (tempsAccelero.timeIsUp() == 1)
-		{
-			Wire.beginTransmission(MPU_addr);
-			Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-			Wire.endTransmission(false);
-			Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
-			AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
-			AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-			AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-			Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-			GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
-			GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
-			GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-			arretY.setValue(AcY);
-		}
-		//Accelero.loop.end
-
 		aimantVitesse.setPreviousState();
 		photoSensor.setPreviousState();
 		frein.setPreviousState();
@@ -492,8 +493,7 @@ void loop()
 		savedState = aimantVitesse.getState();
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
-		//Accelero.modif
-		if (tempsFrein.timeIsUp() == 1 || arretY.getState() == 0) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
+		if (tempsFrein.timeIsUp() == 1) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
 		{
 			Serial.println("Le velo est a l'ARRET !");
 			stop = true;
@@ -536,7 +536,7 @@ void loop()
 			blinkOn = !blinkOn;
 			if (blinkOn)
 			{
-				if (vitesse0)
+				if (SESA.getArret() == 1)
 				{
 					ledStop.switchOn();	// 
 				}
@@ -558,7 +558,7 @@ void loop()
 		Serial.print("La roue a tourne : ");
 		Serial.print(aimantCounter);
 		Serial.println(" fois.");
-		currentDistance = distanceRoue * aimantCounter; // Calcul de la distance parcourue durant les 5 dernières secondes
+		currentDistance = aimantCounter * SESA.diametreRoue; // Calcul de la distance parcourue durant les 5 dernières secondes
   		currentVitesse = (currentDistance * 10000) / 3600; // Calcul de la vitesse moyenne durant les 5 dernières secondes
 	}
 	Serial.print("La vitesse est de ");
@@ -595,11 +595,11 @@ void loop()
 	}
 	if (aimantCounter == 0)
 	{
-		vitesse0 = true;
+		SESA.setArret(true);
 	}
 	else
 	{
-		vitesse0 = false;
+		SESA.setArret(false);
 	}
 	Serial.println("");
 }
