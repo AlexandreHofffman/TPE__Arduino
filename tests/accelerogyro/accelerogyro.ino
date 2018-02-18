@@ -7,7 +7,6 @@ class hysteresis
 		int seuilBas;
 	public:
 		hysteresis(int aSeuilBas,  int aSeuilHaut);
-		void setUp();
 		void setValue(int value);
 		int getState();
 };
@@ -16,11 +15,7 @@ hysteresis::hysteresis(int aSeuilBas,  int aSeuilHaut)
 {
 	seuilHaut = aSeuilHaut;
   seuilBas = aSeuilBas;
-}
-
-void hysteresis::setUp()
-{
-	currentState = false;
+  currentState = false;
 }
 
 void hysteresis::setValue(int value)
@@ -42,7 +37,55 @@ int hysteresis::getState()
 	return int(currentState);
 }
 
-hysteresis arretY();
+class conserv
+{
+  private:
+    unsigned int nb;
+  public:
+    int counter;
+    conserv(int aNb);
+    void setLastState(boolean state);  
+    int getState();
+    void refresh();
+};
+
+conserv::conserv(int aNb)
+{
+  nb = aNb;
+  counter = 0;
+}
+
+void conserv::setLastState(boolean state)
+{
+  if (state)
+  {
+    counter = nb;
+  }
+}
+
+int conserv::getState()
+{
+  if (counter > 0)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+void conserv::refresh()
+{
+  if (counter > 0)
+  {
+    counter--;
+  }
+}
+
+hysteresis hautY(1500, 2000);
+hysteresis basY(-2000, -1500);
+conserv axeY(10);
 
 #include<Wire.h>
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -53,9 +96,8 @@ void setup(){
   Wire.write(0x6B);  // PWR_MGMT_1 register
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
-  arretY.setUp(580, 620);
   Serial.begin(9600);
-  pinMode(4, OUTPUT)
+  pinMode(4, OUTPUT);
 }
 void loop(){
   Wire.beginTransmission(MPU_addr);
@@ -76,13 +118,25 @@ void loop(){
   Serial.print(" | GyX = "); Serial.print(GyX);
   Serial.print(" | GyY = "); Serial.print(GyY);
   Serial.print(" | GyZ = "); Serial.println(GyZ);*/
-  arretY.setValue(AcY);
-  if (arretY.getState() == 1)
+  Serial.println(AcY);
+  hautY.setValue(AcY);
+  basY.setValue(AcY);
+  axeY.refresh();
+  if (hautY.getState() == 1 || basY.getState() == 0)
   {
-  	digitalWrite(4, HIGH);
+  	axeY.setLastState(true);
   }
   else
   {
-  	digitalWrite(4, LOW);
+  	axeY.setLastState(false);
   }
+  if (axeY.getState() == 1)
+  {
+    digitalWrite(4, HIGH);
+  }
+  else
+  {
+    digitalWrite(4, LOW);
+  }
+  delay(20);
 }
