@@ -49,23 +49,83 @@ class conserv
     void refresh();
 };
 
-conserv::conserv(int aNb)
+/*
+Entrée :
+  entre les valeurs VRAI ou FAUX après hysteresis (haut et bas)
+Traitement :
+  enregistrer la différence pécédente
+  sauvegarder l'état précédent
+  lire la nouvelle valeur
+  faire la différence
+  faire une moyenne sur les deux dernieres entrées
+  SI la moyenne est en dehors des bornes prévues
+  ALORS passer à l'état vrai
+  SINON état faux
+  conserver cet état sur 20 boucles (20 * 5 millisecondes => 100 millisecondes)
+Sortie:
+  état conservé VRAI ou FAUX
+*/
+class axe
 {
-  nb = aNb;
+  private:
+    int lastValue;
+    int currentValue;    
+    int lastDiff;
+    int currentDiff;
+    int moyenne;
+    int conservTimes;
+    int conservCounter;
+    int seuilHaut;
+    int seuilBas;
+    boolean currentState;
+  public:
+    axe(int aSeuilBas, int aSeuilHaut, int aConservTimes);
+    void setValue(int value);
+    int getState(); // + refresh
+};
+
+axe::axe(int aSeuilBas, int aSeuilHaut, int aConservTimes)
+{
+  seuilBas = aSeuilBas;
+  seuilHaut = aSeuilHaut;
+  conservTimes = aConservTimes;
+  lastValue = 0;
+  currentValue = 0;
+  lastDiff = 0;
+  currentDiff = 0;
+  moyenne = 0;
+  conservCounter = 0;
+  currentState = false;
 }
 
-void conserv::setLastState(boolean state)
+void axe::setValue(int value)
 {
-  if (state)
+  lastValue = currentValue;
+  currentValue = value;
+  lastDiff = currentDiff;
+  currentDiff = currentValue - lastValue;
+  moyenne = abs((lastDiff + currentDiff) / 2);
+  Serial.println(moyenne);
+}
+
+int axe::getState()
+{
+  if (moyenne > seuilHaut && !currentState)
   {
-    count = nb;
+    currentState = true;
   }
-}
-
-int conserv::getState()
-{
-  if (count > 0)
+  else if (moyenne < seuilBas && currentState)
   {
+    currentState = false;
+  }
+
+  if (currentState)
+  {
+    conservCounter = conservTimes;
+  }
+  if (conservCounter > 0)
+  {
+    conservCounter--;
     return 1;
   }
   else
@@ -74,23 +134,10 @@ int conserv::getState()
   }
 }
 
-void conserv::refresh()
-{
-   if (count > 0)
-  {
-    count--;
-  }
-}
 
-hysteresis hautX(19000, 19500);
-hysteresis basX(14200, 14700);
-hysteresis hautY(1500, 2000);
-hysteresis basY(-2000, -1500);
-hysteresis hautZ(2200, 2600);
-hysteresis basZ(-1400, -1000);
-conserv axeX(25);
-conserv axeY(25);
-conserv axeZ(25);
+axe axeX(1400, 1600, 20);
+axe axeY(1400, 1600, 20);
+axe axeZ(800, 1000, 20);
 
 #include<Wire.h>
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -118,49 +165,20 @@ void loop(){
   GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-  Serial.print("AcX = "); Serial.print(AcX);
+  axeX.setValue(AcX);
+  axeY.setValue(AcY);
+  axeZ.setValue(AcZ);
+
+  /*Serial.print("AcX = "); Serial.print(AcX);
   Serial.print(" | AcY = "); Serial.print(AcY);
-  Serial.print(" | AcZ = "); Serial.print(AcZ);
+  Serial.print(" | AcZ = "); Serial.println(AcZ);
   Serial.print(" | Tmp = "); Serial.print(Tmp/340.00+36.53);  //equation for temperature in degrees C from datasheet
   Serial.print(" | GyX = "); Serial.print(GyX);
   Serial.print(" | GyY = "); Serial.print(GyY);
-  Serial.print(" | GyZ = "); Serial.println(GyZ);
-  hautX.setValue(AcX);
-  basX.setValue(AcX);
-  hautY.setValue(AcY);
-  basY.setValue(AcY);
-  hautZ.setValue(AcZ);
-  basZ.setValue(AcZ);
-  axeX.refresh();
-  axeY.refresh();
-  axeZ.refresh();
- 
-  if (hautY.getState() == 1 || basY.getState() == 0)
-  {
-  	axeY.setLastState(true);
-  }
-  else
-  {
-  	axeY.setLastState(false);
-  }
-  if (hautX.getState() == 1 || basX.getState() == 0)
-  {
-    axeX.setLastState(true);
-  }
-  else
-  {
-    axeX.setLastState(false);
-  }
-  if (hautZ.getState() == 1 || basZ.getState() == 0)
-  {
-    axeZ.setLastState(true);
-  }
-  else
-  {
-    axeZ.setLastState(false);
-  }
+  Serial.print(" | GyZ = "); Serial.println(GyZ);*/
+  
 
-  if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1)
+  if (axeX.getState() == 1)
   {
     digitalWrite(3, HIGH);
   }
@@ -168,4 +186,23 @@ void loop(){
   {
     digitalWrite(3, LOW);
   }
+  if (axeY.getState() == 1)
+  {
+    digitalWrite(4, HIGH);
+  }
+  else
+  {
+    digitalWrite(4, LOW);
+  }
+  if (axeZ.getState() == 1)
+  {
+    digitalWrite(5, HIGH);
+  }
+  else
+  {
+    digitalWrite(5, LOW);
+  }
+
+  delay(50);
+  
 }
