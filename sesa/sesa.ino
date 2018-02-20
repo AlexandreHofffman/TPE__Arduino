@@ -1,7 +1,6 @@
 /*-----------------INFOS-----------------*\
 	AUTHOR : Tahitoa L
-	PROJET : prgm de commande systeme
-eclairage SESA
+	PROJET : prgm de commande systeme eclairage SESA
 	VERSION : 0.1
 \*---------------------------------------*/
 
@@ -350,37 +349,6 @@ int timer::getDelay()
 	return delayCurrent;
 }
 
-hysteresis::hysteresis()
-{
-	
-}
-
-void hysteresis::setUp(int aSeuilBas,  int aSeuilHaut)
-{
-	seuilHaut = aSeuilHaut;
-	seuilBas = aSeuilBas;
-	currentState = false;
-}
-
-void hysteresis::setValue(int value)
-{
-	savedValue = value;
-}
-
-int hysteresis::getState()
-{
-	if (savedValue > seuilHaut && !currentState)
-	{
-		currentState = true;
-	}
-	if (savedValue < seuilBas && currentState)
-	{
-		currentState = false;
-	}
-
-	return int(currentState);
-}
-
 
 
 
@@ -401,6 +369,8 @@ float currentVitesse;
 float distanceRoue;
 boolean blinkOn = false;
 
+const boolean serial = false;
+
 lampe ledRouge(11);
 lampe ledBlanc(10);
 binaryLampe ledStop(9);
@@ -412,7 +382,6 @@ timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
 timer blink(330); // Minuteur pour le clignotement des lumières
 timer tempsAccelero(500);
-hysteresis arretY()
 
 void setup()
 {
@@ -426,11 +395,14 @@ void setup()
 	distanceRoue = diametreRoue * PI / 100;
 	blink.init();
 	tempsAccelero.init();
-	arretY(580, 620);
 	vitesse0 = false;
 	blinkOn = false;
-	Serial.begin(9600);
-	Serial.println("Fin du setUp !");
+	if (Serial)
+	{
+		Serial.begin(9600);
+		Serial.println("Fin du setUp !");	
+	}
+	
 }
 
 void loop()
@@ -452,10 +424,12 @@ void loop()
 		savedState = aimantVitesse.getState();
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
-		//Accelero.modif
-		if (tempsFrein.timeIsUp() == 1 || arretY.getState() == 0) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
+		if (tempsFrein.timeIsUp() == 1) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
 		{
-			Serial.println("Le velo est a l'ARRET !");
+			if (serial)
+			{
+				Serial.println("Le velo est a l'ARRET !");    
+			}
 			stop = true;
 			currentDistance = 0;
 			currentVitesse = 0;
@@ -465,7 +439,10 @@ void loop()
 		if (aimantVitesse.stateHasRising() == 1)
 		{
 			aimantCounter++;
-			Serial.println("Aimant detecte");
+			if (serial)
+			{
+				Serial.println("Aimant detecte");	
+			}			
 			tempsFrein.init();
 		}
 		if (photoSensor.stateHasChanged() == 1)
@@ -511,28 +488,44 @@ void loop()
 	}
 	if (stop == true)
 	{
-		Serial.println("Boucle vitesse arretee. Changement de l'etat des lumieres...");
+		if (serial)
+		{
+			Serial.println("Boucle vitesse arretee. Changement de l'etat des lumieres...");
+		}
 	}
 	else
 	{
-		Serial.print("La roue a tourne : ");
-		Serial.print(aimantCounter);
-		Serial.println(" fois.");
+		if (serial)
+		{
+			Serial.print("La roue a tourne : ");
+			Serial.print(aimantCounter);
+			Serial.println(" fois.");
+		}
 		currentDistance = distanceRoue * aimantCounter; // Calcul de la distance parcourue durant les 5 dernières secondes
   		currentVitesse = (currentDistance * 10000) / 3600; // Calcul de la vitesse moyenne durant les 5 dernières secondes
 	}
-	Serial.print("La vitesse est de ");
-	Serial.print(currentVitesse);
-	Serial.println(" km/h.");
-	Serial.print("Il fait ");
+	if (serial)
+	{
+		Serial.print("La vitesse est de ");
+		Serial.print(currentVitesse);
+		Serial.println(" km/h.");
+		Serial.print("Il fait ");
+	}
+	
 	if (photoSensor.getState() == 1)
 	{
-		Serial.print("JOUR");
+		if (serial)
+		{
+			Serial.print("JOUR");
+		}
 		ledBlanc.setInstensity(8); //Affectation du mode veilleuse à l'éclairage avant
 	}
 	else if (photoSensor.getState() == 0 && currentVitesse < 15)
 	{
-		Serial.print("NUIT");
+		if (serial)
+		{
+			Serial.print("NUIT");
+		}
 		ledBlanc.setInstensity(100); // Affectation du mode feux position à l'éclairage avant
 	}
 	else if (photoSensor.getState() == 0)
@@ -561,5 +554,8 @@ void loop()
 	{
 		vitesse0 = false;
 	}
-	Serial.println("");
+	if (serial)
+	{
+		Serial.println("");
+	}
 }
