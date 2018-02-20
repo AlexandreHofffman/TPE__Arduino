@@ -1,4 +1,3 @@
-
 class analogSensor
 {
 	private:
@@ -330,6 +329,75 @@ int timer::getDelay()
 }
 
 
+class axe
+{
+  private:
+    int lastValue;
+    int currentValue;    
+    int lastDiff;
+    int currentDiff;
+    int moyenne;
+    int conservTimes;
+    int conservCounter;
+    int seuilHaut;
+    int seuilBas;
+    boolean currentState;
+  public:
+    axe(int aSeuilBas, int aSeuilHaut, int aConservTimes);
+    void setValue(int value);
+    int getState(); // + refresh
+};
+
+axe::axe(int aSeuilBas, int aSeuilHaut, int aConservTimes)
+{
+  seuilBas = aSeuilBas;
+  seuilHaut = aSeuilHaut;
+  conservTimes = aConservTimes;
+  lastValue = 0;
+  currentValue = 0;
+  lastDiff = 0;
+  currentDiff = 0;
+  moyenne = 0;
+  conservCounter = 0;
+  currentState = false;
+}
+
+void axe::setValue(int value)
+{
+  lastValue = currentValue;
+  currentValue = value;
+  lastDiff = currentDiff;
+  currentDiff = currentValue - lastValue;
+  moyenne = abs((lastDiff + currentDiff) / 2);
+  Serial.println(moyenne);
+}
+
+int axe::getState()
+{
+  if (moyenne > seuilHaut && !currentState)
+  {
+    currentState = true;
+  }
+  else if (moyenne < seuilBas && currentState)
+  {
+    currentState = false;
+  }
+
+  if (currentState)
+  {
+    conservCounter = conservTimes;
+  }
+  if (conservCounter > 0)
+  {
+    conservCounter--;
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 const unsigned int timerValue = 5000;
 const float diametreRoue = 31.85;
 boolean serialDebug = true;
@@ -357,6 +425,10 @@ digitalSensor frein(13);
 timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
 timer blink(330); // Minuteur pour le clignotement des lumières
+timer tempsAccelero(10);
+axe axeX(1400, 1600, 10);
+axe axeY(1400, 1600, 10);
+axe axeZ(800, 1000, 10);
 
 void setup()
 {
@@ -387,6 +459,10 @@ void loop()
 	aimantCounter = 0;
 	while(tempsVitesse.timeIsUp() == 0 && !stop)
 	{
+		if (tempsAccelero.timeIsUp() == 1)
+		{
+		    
+		}
 		aimantVitesse.setPreviousState();
 		photoSensor.setPreviousState();
 		frein.setPreviousState();
