@@ -143,7 +143,7 @@ void analogSensor::setPreviousState()
 int analogSensor::stateHasChanged()
 {
 	if (previousState == currentState)
-	{	
+	{
 		hasChanged = false;
 		return 0;
 	}
@@ -225,7 +225,7 @@ void digitalSensor::setPreviousState()
 int digitalSensor::stateHasChanged()
 {
 	if (previousState == currentState)
-	{	
+	{
 		hasChanged = false;
 		return 0;
 	}
@@ -389,7 +389,7 @@ void setup()
 	ledBlanc.setUp();
 	ledStop.setUp();
 	ledLat.setUp();
-	photoSensor.setUp(715, 745); 
+	photoSensor.setUp(715, 745);
 	aimantVitesse.setUp(2);
 	frein.setUp(1);
 	distanceRoue = diametreRoue * PI / 100;
@@ -400,9 +400,9 @@ void setup()
 	if (Serial)
 	{
 		Serial.begin(9600);
-		Serial.println("Fin du setUp !");	
+		Serial.println("Fin du setUp !");
 	}
-	
+
 }
 
 void loop()
@@ -428,7 +428,7 @@ void loop()
 		{
 			if (serial)
 			{
-				Serial.println("Le velo est a l'ARRET !");    
+				Serial.println("Le velo est a l'ARRET !");
 			}
 			stop = true;
 			currentDistance = 0;
@@ -441,8 +441,8 @@ void loop()
 			aimantCounter++;
 			if (serial)
 			{
-				Serial.println("Aimant detecte");	
-			}			
+				Serial.println("Aimant detecte");
+			}
 			tempsFrein.init();
 		}
 		if (photoSensor.stateHasChanged() == 1)
@@ -459,7 +459,7 @@ void loop()
 			{
 				if (photoSensor.getState() == 0)
 				{
-					ledRouge.setInstensity(3);
+					ledRouge.setInstensity(30);
 				}
 				else
 				{
@@ -475,7 +475,7 @@ void loop()
 			{
 				if (vitesse0)
 				{
-					ledStop.switchOn();	// 
+					ledStop.switchOn();	//
 				}
 				ledLat.switchOn(); //Clignotement des éclairages latéraux
 			}
@@ -511,7 +511,7 @@ void loop()
 		Serial.println(" km/h.");
 		Serial.print("Il fait ");
 	}
-	
+
 	if (photoSensor.getState() == 1)
 	{
 		if (serial)
