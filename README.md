@@ -1,12 +1,12 @@
-#TPE__Arduino
+# TPE__Arduino
 
-##Configuration du système
+## Configuration du système
 
 _en cours d'édition_
 
 ***
 
-##En cours
+## En cours
 
 * création d'un **fichier de configuration** pour adapter le programme à l'utilisateur.
 
@@ -14,9 +14,9 @@ _en cours d'édition_
 
 ***
 
-##Changelog
+## Changelog
 
-* **[1.0.0]** : Nouvelle version. Intégration de l'ensemble des composants y compris l'accléromètre.
+* **[1.0.0]** : Nouvelle version. Intégration de l'ensemble des composants.
 
 * **[0.5.0]** : création de la classe axe pour a gestion de données provenant de l'accléromètre (acquisition, lissage, temporisation).
 
