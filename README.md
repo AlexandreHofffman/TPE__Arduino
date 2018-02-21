@@ -16,6 +16,8 @@ _en cours d'édition_
 
 ## Changelog
 
+* **[1.0.2]** : Ajout des commentaires.
+
 * **[1.0.0]** : Nouvelle version. Intégration de l'ensemble des composants.
 
 * **[0.5.0]** : création de la classe axe pour a gestion de données provenant de l'accléromètre (acquisition, lissage, temporisation).

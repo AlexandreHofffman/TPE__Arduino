@@ -1,8 +1,8 @@
-/*----------------------INFOS----------------------*\
-	AUTHOR : Tahitoa L
+/*-------------------------INFOS-------------------------*\
+	AUTEUR : Tahitoa L
 	PROJET : prgm de commande systeme eclairage SESA
-	VERSION : 1.0.0
-\*-------------------------------------------------*/
+	VERSION : 1.0.2
+\*-------------------------------------------------------*/
 
 //config
 
@@ -428,6 +428,7 @@ int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 const unsigned int timerValue = 5000;
 const float diametreRoue = 31.85;
+const int tauxDeRafraichissement = 5;
 boolean serialDebug = true;
 boolean stop = false;
 boolean stopVitesse = false;
@@ -446,6 +447,8 @@ boolean blinkOn = false;
 
 const boolean serial = false;
 
+
+// Création des objets
 lampe ledRouge(11);
 lampe ledBlanc(10);
 binaryLampe ledStop(9);
@@ -497,20 +500,23 @@ void loop()
 {
 	stop = false;
 	tempsVitesse.init();
-	if (stopVitesse == true)
+	if (stopVitesse == true) // Permet d'éviter une boucle sans délai lorsque le vélo est à l'arrêt
 	{
 		tempsFrein.init();
 	}
 	stopVitesse = false;
 	aimantCounter = 0;
+
+	// ComptageVitesse.begin
 	while(tempsVitesse.timeIsUp() == 0 && !stop)
 	{
+		// Lecture des données provenant de l'accéléromètre.begin
 		if (accelero && tempsAccelero.timeIsUp() == 1)
 		{
 			Wire.beginTransmission(MPU_addr);
-		  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+		  Wire.write(0x3B);  // commence à l'inscription 0x3B (ACCEL_XOUT_H)
 		  Wire.endTransmission(false);
-		  Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+		  Wire.requestFrom(MPU_addr,14,true);  // demander un total de 14 inscriptions
 		  AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
 		  AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
 		  AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
@@ -518,10 +524,11 @@ void loop()
 		  GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
 		  GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
 		  GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+			// Prétraitement des données
 			axeX.setValue(AcX);
 		  axeY.setValue(AcY);
 		  axeZ.setValue(AcZ);
-			if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1)
+			if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1) // Si un mouvement détecté sur l'un des trois axe
 			{
 				mouvement = true;
 				Serial.println("Mouvement detecte");
@@ -532,14 +539,18 @@ void loop()
 				Serial.println("AUCUN mvt detecte");
 			}
 		}
+		// Lecture des données provenant de l'accléromètre.end
+
+		// Sauvegarde des données pour détecter les fronts
 		aimantVitesse.setPreviousState();
 		photoSensor.setPreviousState();
 		frein.setPreviousState();
-		delay(5);
+		delay(tauxDeRafraichissement);
 		savedState = aimantVitesse.getState();
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
-		if (tempsFrein.timeIsUp() == 1 || mouvement == false) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
+		// Vélo à l'arrêt.begin
+		if (tempsFrein.timeIsUp() == 1 || mouvement == false)
 		{
 			if (serial)
 			{
@@ -551,6 +562,9 @@ void loop()
 			stopVitesse = true;
 			aimantCounter = 0;
 		}
+		// Vélo à l'arrêt.end
+
+		// Vélo redémarre.begin
 		if (vitesse0)
 		{
 			if (tempsDepart.timeIsUp() == 1)
@@ -563,6 +577,9 @@ void loop()
 				}
 			}
 		}
+		// Vélo redémarre.end
+
+		// Détection front montant aimant.begin
 		if (aimantVitesse.stateHasRising() == 1)
 		{
 			aimantCounter++;
@@ -572,10 +589,16 @@ void loop()
 			}
 			tempsFrein.init();
 		}
+		// Détection front montant aimant.end
+
+		// Détection front photorésistance.begin
 		if (photoSensor.stateHasChanged() == 1)
 		{
 			stop = true;
 		}
+		// Détection front photorésistance.end
+
+		// Détection front capteur frein.begin (sans sortir de la boucle de comptage de vitesse)
 		if (frein.stateHasChanged() == 1)
 		{
 			if (frein.getState() == 1)
@@ -594,6 +617,9 @@ void loop()
 				}
 			}
 		}
+		// Détection front capteur frein.end
+
+		//Clignotement.begin
 		if (blink.timeIsUp() == 1)
 		{
 			blink.init();
@@ -612,15 +638,19 @@ void loop()
 				ledLat.switchOff(); // Clignotement des éclairages latéraux
 			}
 		}
+		//Clignotement.end
 	}
-	if (stop == true)
+	// ComptageVitesse.end
+
+
+	if (stop == true) // Si le comptage de la vitesse a été interrompu (-> on ne peut donc pas déterminer vitesse du vélo)
 	{
 		if (serial)
 		{
 			Serial.println("Boucle vitesse arretee. Changement de l'etat des lumieres...");
 		}
 	}
-	else
+	else // Détermination de la vitesse du vélo
 	{
 		if (serial)
 		{
@@ -639,6 +669,7 @@ void loop()
 		Serial.print("Il fait ");
 	}
 
+	// Modification fonctionnement éclairage.begin
 	if (photoSensor.getState() == 1)
 	{
 		if (serial)
@@ -673,7 +704,10 @@ void loop()
 			ledRouge.setInstensity(30); // Affectation du mode feux position à l'éclairage arrière
 		}
 	}
-	if (aimantCounter == 0)
+	// Modification fonctionnement éclairage.end
+
+
+	if (aimantCounter == 0) // Si aucun aimant n'a été détecté durant la boucle, le vélo est à l'arrêt
 	{
 		vitesse0 = true;
 	}
