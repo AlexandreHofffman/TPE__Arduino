@@ -1,9 +1,14 @@
-/*-----------------INFOS-----------------*\
+/*----------------------INFOS----------------------*\
 	AUTHOR : Tahitoa L
 	PROJET : prgm de commande systeme eclairage SESA
 	VERSION : 0.1
-\*---------------------------------------*/
+\*-------------------------------------------------*/
 
+//config
+
+const boolean accelero = true;
+
+//config.end
 
 class analogSensor
 {
@@ -389,7 +394,6 @@ void axe::setValue(int value)
   lastDiff = currentDiff;
   currentDiff = currentValue - lastValue;
   moyenne = abs((lastDiff + currentDiff) / 2);
-  Serial.println(moyenne);
 }
 
 int axe::getState()
@@ -418,6 +422,9 @@ int axe::getState()
   }
 }
 
+#include <Wire.h>
+const int MPU_addr=0x68;  // I2C address of the MPU-6050
+int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 const unsigned int timerValue = 5000;
 const float diametreRoue = 31.85;
@@ -425,6 +432,7 @@ boolean serialDebug = true;
 boolean stop = false;
 boolean stopVitesse = false;
 boolean vitesse0;
+boolean mouvement = false;
 int testState;
 int aimantCounter;
 int savedState;
@@ -447,8 +455,13 @@ digitalSensor aimantVitesse(2);
 digitalSensor frein(13);
 timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
 timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
+timer tempsDepart(1000);
 timer blink(330); // Minuteur pour le clignotement des lumières
-timer tempsAccelero(500);
+timer tempsAccelero(10);
+axe axeX(1400, 1600, 20);
+axe axeY(1400, 1600, 20);
+axe axeZ(800, 1000, 20);
+
 
 void setup()
 {
@@ -464,12 +477,20 @@ void setup()
 	tempsAccelero.init();
 	vitesse0 = false;
 	blinkOn = false;
-	if (Serial)
+	if (accelero)
+	{
+		Wire.begin();
+	  Wire.beginTransmission(MPU_addr);
+	  Wire.write(0x6B);  // PWR_MGMT_1 register
+	  Wire.write(0);     // set to zero (wakes up the MPU-6050)
+	  Wire.endTransmission(true);
+	}
+	if (serial)
 	{
 		Serial.begin(9600);
 		Serial.println("Fin du setUp !");
 	}
-
+	Serial.begin(9600);
 }
 
 void loop()
@@ -484,6 +505,33 @@ void loop()
 	aimantCounter = 0;
 	while(tempsVitesse.timeIsUp() == 0 && !stop)
 	{
+		if (accelero && tempsAccelero.timeIsUp() == 1)
+		{
+			Wire.beginTransmission(MPU_addr);
+		  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+		  Wire.endTransmission(false);
+		  Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+		  AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+		  AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+		  AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+		  Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+		  GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
+		  GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
+		  GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+			axeX.setValue(AcX);
+		  axeY.setValue(AcY);
+		  axeZ.setValue(AcZ);
+			if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1)
+			{
+				mouvement = true;
+				Serial.println("Mouvement detecte");
+			}
+			else
+			{
+				mouvement = false;
+				Serial.println("AUCUN mvt detecte");
+			}
+		}
 		aimantVitesse.setPreviousState();
 		photoSensor.setPreviousState();
 		frein.setPreviousState();
@@ -491,7 +539,7 @@ void loop()
 		savedState = aimantVitesse.getState();
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
-		if (tempsFrein.timeIsUp() == 1) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
+		if (tempsFrein.timeIsUp() == 1 || mouvement == false) //==> penser à intégrer quelque chose permettant de détecter le redémarrage du vélo
 		{
 			if (serial)
 			{
@@ -502,6 +550,18 @@ void loop()
 			currentVitesse = 0;
 			stopVitesse = true;
 			aimantCounter = 0;
+		}
+		if (vitesse0)
+		{
+			if (tempsDepart.timeIsUp() == 1)
+			{
+				tempsDepart.init();
+				if (aimantCounter > 0 || mouvement == true)
+				{
+					stop = true;
+					aimantCounter = 1; // Pour ne pas repasser dans l'etat v0 si le vel est en mvt mais que l'aimant n'a pas encore ete detcete
+				}
+			}
 		}
 		if (aimantVitesse.stateHasRising() == 1)
 		{
@@ -542,14 +602,14 @@ void loop()
 			{
 				if (vitesse0)
 				{
-					ledStop.switchOn();	//
+					ledStop.switchOn();	// Clignotement feux de détresse
 				}
-				ledLat.switchOn(); //Clignotement des éclairages latéraux
+				ledLat.switchOn(); // Clignotement des éclairages latéraux
 			}
 			else
 			{
-				ledStop.switchOff();
-				ledLat.switchOff(); //Clignotement des éclairages latéraux
+				ledStop.switchOff(); // Clignotement feux de détresse
+				ledLat.switchOff(); // Clignotement des éclairages latéraux
 			}
 		}
 	}
