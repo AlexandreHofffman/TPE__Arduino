@@ -16,6 +16,8 @@ _en cours d'édition_
 
 ## Changelog
 
+* **[1.0.3]** : Ajout parti configuration et correction bugs mineurs
+
 * **[1.0.2]** : Ajout des commentaires.
 
 * **[1.0.0]** : Nouvelle version. Intégration de l'ensemble des composants.

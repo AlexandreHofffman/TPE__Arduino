@@ -1,12 +1,28 @@
 /*-------------------------INFOS-------------------------*\
 	AUTEUR : Tahitoa L
 	PROJET : prgm de commande systeme eclairage SESA
-	VERSION : 1.0.2
+	VERSION : 1.0.3
 \*-------------------------------------------------------*/
 
 //config
 
 const boolean accelero = true;
+const unsigned int timerValue = 5000;
+const float diametreRoue = 31.85;
+const int tauxDeRafraichissement = 5;
+const boolean serial = false;
+
+int pinLedRouge = 11;
+int pinLedBlanc = 10;
+int pinLedStop = 9;
+int pinLedLat = 8;
+int pinPhotosensor = A0;
+int pinHallSensor = 2;
+int pinFrein = 13;
+int tempsFreinValue = 2000;
+int tempsDepartValue = 1000;
+int blinkValue = 330;
+int tempoValue = 20; // Valeur de la temporisation mouvements *10 millisecondes
 
 //config.end
 
@@ -426,10 +442,6 @@ int axe::getState()
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
-const unsigned int timerValue = 5000;
-const float diametreRoue = 31.85;
-const int tauxDeRafraichissement = 5;
-boolean serialDebug = true;
 boolean stop = false;
 boolean stopVitesse = false;
 boolean vitesse0;
@@ -445,25 +457,23 @@ float currentVitesse;
 float distanceRoue;
 boolean blinkOn = false;
 
-const boolean serial = false;
-
 
 // Création des objets
-lampe ledRouge(11);
-lampe ledBlanc(10);
-binaryLampe ledStop(9);
-binaryLampe ledLat(8);
-analogSensor photoSensor(A0);
-digitalSensor aimantVitesse(2);
-digitalSensor frein(13);
+lampe ledRouge(pinLedRouge );
+lampe ledBlanc(pinLedBlanc );
+binaryLampe ledStop(pinLedStop);
+binaryLampe ledLat(pinLedLat);
+analogSensor photoSensor(pinPhotosensor);
+digitalSensor aimantVitesse(pinHallSensor);
+digitalSensor frein(pinFrein);
 timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
-timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
-timer tempsDepart(1000);
-timer blink(330); // Minuteur pour le clignotement des lumières
+timer tempsFrein(tempsFreinValue); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
+timer tempsDepart(tempsDepartValue);
+timer blink(blinkValue); // Minuteur pour le clignotement des lumières
 timer tempsAccelero(10);
-axe axeX(1400, 1600, 20);
-axe axeY(1400, 1600, 20);
-axe axeZ(800, 1000, 20);
+axe axeX(1400, 1600, tempoValue);
+axe axeY(1400, 1600, tempoValue);
+axe axeZ(800, 1000, tempoValue);
 
 
 void setup()
