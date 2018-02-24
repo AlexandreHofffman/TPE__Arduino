@@ -550,7 +550,7 @@ void loop()
 		savedValue = photoSensor.getState();
 		savedStateFrein = frein.getState();
 		// Vélo à l'arrêt.begin
-		if (tempsFrein.timeIsUp() == 1 || mouvement == false)
+		if (tempsFrein.timeIsUp() == 1 && mouvement == false)
 		{
 			if (serial)
 			{
