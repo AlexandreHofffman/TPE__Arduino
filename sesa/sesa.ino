@@ -1,12 +1,28 @@
 /*-------------------------INFOS-------------------------*\
 	AUTEUR : Tahitoa L
 	PROJET : prgm de commande systeme eclairage SESA
-	VERSION : 1.0.2
+	VERSION : 1.0.3
 \*-------------------------------------------------------*/
 
-//config
+//config.begin
 
 const boolean accelero = true;
+const unsigned int timerValue = 5000;
+const float diametreRoue = 31.85;
+const int tauxDeRafraichissement = 5;
+const boolean serial = false;
+
+int pinLedRouge = 11;
+int pinLedBlanc = 10;
+int pinLedStop = 9;
+int pinLedLat = 8;
+int pinPhotosensor = A0;
+int pinHallSensor = 2;
+int pinFrein = 13;
+int tempsFreinValue = 2000;
+int tempsDepartValue = 1000;
+int blinkValue = 330;
+int tempoValue = 20; // Valeur de la temporisation mouvements *10 millisecondes
 
 //config.end
 
@@ -42,7 +58,7 @@ class digitalSensor
 		boolean hasRising;
 		boolean hasChanged;
 	public:
-		digitalSensor(byte aPin);
+		digitalSensor(int aPin);
 		void setUp(int aModeInverse);
 		int getState();
 		void setPreviousState();
@@ -57,7 +73,7 @@ class lampe
 		byte value;
 		void refresh();
 	public:
-		lampe(byte aPin);
+		lampe(int aPin);
 		void setUp();
 		void switchOn();
 		void switchOff();
@@ -70,7 +86,7 @@ class binaryLampe
 		byte pin;
 		byte state;
 	public:
-		binaryLampe(byte aPin);
+		binaryLampe(int aPin);
 		void setUp();
 		void switchOn();
 		void switchOff();
@@ -173,9 +189,9 @@ int analogSensor::stateHasRising()
 	}
 }
 
-digitalSensor::digitalSensor(byte aPin)
+digitalSensor::digitalSensor(int aPin)
 {
-	pin = aPin;
+	pin = byte(aPin);
 }
 
 void digitalSensor::setUp(int aModeInverse)
@@ -256,9 +272,9 @@ int digitalSensor::stateHasRising()
 }
 
 
-lampe::lampe(byte aPin)
+lampe::lampe(int aPin)
 {
-	pin = aPin;
+	pin = byte(aPin);
 }
 
 void lampe::setUp()
@@ -296,9 +312,9 @@ void lampe::refresh()
 	analogWrite(pin, value);
 }
 
-binaryLampe::binaryLampe(byte aPin)
+binaryLampe::binaryLampe(int aPin)
 {
-	pin = aPin;
+	pin = byte(aPin);
 }
 
 void binaryLampe::setUp()
@@ -422,17 +438,80 @@ int axe::getState()
   }
 }
 
+class SESA
+{
+	private:
+		boolean arret;
+		float vitesse;
+		boolean jour;
+	public:
+		SESA(boolean initState);
+		void setArret(int aArret);
+		void setVitesse(float aVitesse);
+		void setJour(int aJour);
+		int getArret();
+		float getVitesse();
+		int getJour();
+};
+
+SESA::SESA(boolean initState)
+{
+	arret = initState;
+	jour = initState;
+	vitesse = 0;
+}
+
+void SESA::setArret(int aArret)
+{
+	if (aArret == 1)
+	{
+		arret = true;
+	}
+	else
+	{
+		arret = false;
+	}
+}
+
+int SESA::getArret()
+{
+	return int(arret);
+}
+
+void SESA::setVitesse(float aVitesse)
+{
+	vitesse = aVitesse;
+}
+
+float SESA::getVitesse()
+{
+	return vitesse;
+}
+
+void SESA::setJour(int aJour)
+{
+	if (aJour == 1)
+	{
+		jour = true;
+	}
+	else
+	{
+		jour = false;
+	}
+}
+
+int SESA::getJour()
+{
+	return  int(jour);
+}
+
 #include <Wire.h>
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
-const unsigned int timerValue = 5000;
-const float diametreRoue = 31.85;
-const int tauxDeRafraichissement = 5;
-boolean serialDebug = true;
+
 boolean stop = false;
 boolean stopVitesse = false;
-boolean vitesse0;
 boolean mouvement = false;
 int testState;
 int aimantCounter;
@@ -445,25 +524,26 @@ float currentVitesse;
 float distanceRoue;
 boolean blinkOn = false;
 
-const boolean serial = false;
+
 
 
 // Création des objets
-lampe ledRouge(11);
-lampe ledBlanc(10);
-binaryLampe ledStop(9);
-binaryLampe ledLat(8);
-analogSensor photoSensor(A0);
-digitalSensor aimantVitesse(2);
-digitalSensor frein(13);
+SESA SESA(false);
+lampe ledRouge(pinLedRouge);
+lampe ledBlanc(pinLedBlanc);
+binaryLampe ledStop(pinLedStop);
+binaryLampe ledLat(pinLedLat);
+analogSensor photoSensor(pinPhotosensor);
+digitalSensor aimantVitesse(pinHallSensor);
+digitalSensor frein(pinFrein);
 timer tempsVitesse(timerValue); //Temps defini pour la mesure de vitesse
-timer tempsFrein(2000); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
-timer tempsDepart(1000);
-timer blink(330); // Minuteur pour le clignotement des lumières
+timer tempsFrein(tempsFreinValue); // Minuteur permettant de dire que le vélo est à l'arrêt si aucun aimant n'est passé devant le capeteur pendant plus de 2 secondes
+timer tempsDepart(tempsDepartValue);
+timer blink(blinkValue); // Minuteur pour le clignotement des lumières
 timer tempsAccelero(10);
-axe axeX(1400, 1600, 20);
-axe axeY(1400, 1600, 20);
-axe axeZ(800, 1000, 20);
+axe axeX(1400, 1600, tempoValue);
+axe axeY(1400, 1600, tempoValue);
+axe axeZ(800, 1000, tempoValue);
 
 
 void setup()
@@ -478,7 +558,6 @@ void setup()
 	distanceRoue = diametreRoue * PI / 100;
 	blink.init();
 	tempsAccelero.init();
-	vitesse0 = false;
 	blinkOn = false;
 	if (accelero)
 	{
@@ -493,7 +572,6 @@ void setup()
 		Serial.begin(9600);
 		Serial.println("Fin du setUp !");
 	}
-	Serial.begin(9600);
 }
 
 void loop()
@@ -531,12 +609,18 @@ void loop()
 			if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1) // Si un mouvement détecté sur l'un des trois axe
 			{
 				mouvement = true;
-				Serial.println("Mouvement detecte");
+				if (serial)
+				{
+					Serial.println("MOUVEMENT detecte");
+				}
 			}
 			else
 			{
 				mouvement = false;
-				Serial.println("AUCUN mvt detecte");
+				if (serial)
+				{
+					Serial.println("AUCUN mouvement detecte");
+				}
 			}
 		}
 		// Lecture des données provenant de l'accléromètre.end
@@ -565,7 +649,7 @@ void loop()
 		// Vélo à l'arrêt.end
 
 		// Vélo redémarre.begin
-		if (vitesse0)
+		if (SESA.getArret() == 1)
 		{
 			if (tempsDepart.timeIsUp() == 1)
 			{
@@ -626,7 +710,7 @@ void loop()
 			blinkOn = !blinkOn;
 			if (blinkOn)
 			{
-				if (vitesse0)
+				if (SESA.getArret() == 1)
 				{
 					ledStop.switchOn();	// Clignotement feux de détresse
 				}
@@ -709,11 +793,11 @@ void loop()
 
 	if (aimantCounter == 0) // Si aucun aimant n'a été détecté durant la boucle, le vélo est à l'arrêt
 	{
-		vitesse0 = true;
+		SESA.setArret(1);
 	}
 	else
 	{
-		vitesse0 = false;
+		SESA.setArret(0);
 	}
 	if (serial)
 	{
