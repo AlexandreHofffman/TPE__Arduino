@@ -1,7 +1,7 @@
 /*-------------------------INFOS-------------------------*\
 	AUTEUR : Tahitoa L
 	PROJET : prgm de commande systeme eclairage SESA
-	VERSION : 1.0.3
+	VERSION : 1.0.4
 \*-------------------------------------------------------*/
 
 //config
@@ -22,9 +22,10 @@ int pinFrein = 13;
 int tempsFreinValue = 2000;
 int tempsDepartValue = 1000;
 int blinkValue = 330;
-int tempoValue = 20; // Valeur de la temporisation mouvements *10 millisecondes
+int tempoValue = 20;
 
 //config.end
+
 
 class analogSensor
 {
@@ -47,82 +48,6 @@ class analogSensor
 		int stateHasChanged();
 		int stateHasRising();
 };
-
-class digitalSensor
-{
-	private:
-		byte pin;
-		int modeInverse;
-		int previousState;
-		int currentState;
-		boolean hasRising;
-		boolean hasChanged;
-	public:
-		digitalSensor(byte aPin);
-		void setUp(int aModeInverse);
-		int getState();
-		void setPreviousState();
-		int stateHasChanged();
-		int stateHasRising();
-};
-
-class lampe
-{
-	private:
-		byte pin;
-		byte value;
-		void refresh();
-	public:
-		lampe(byte aPin);
-		void setUp();
-		void switchOn();
-		void switchOff();
-		void setInstensity(int intensityRequested);
-};
-
-class binaryLampe
-{
-	private:
-		byte pin;
-		byte state;
-	public:
-		binaryLampe(byte aPin);
-		void setUp();
-		void switchOn();
-		void switchOff();
-		int getState();
-};
-
-class timer
-{
-	private:
-		unsigned int delayValue;
-		unsigned int delayCurrent;
-		unsigned long initTime;
-		unsigned long currentMillis;
-		boolean end;
-	public:
-		timer(int aDelayValue);
-		void init();
-		int timeIsUp();
-		int getDelay();
-};
-
-class hysteresis
-{
-	private:
-		int savedValue;
-		boolean currentState;
-		int seuilHaut;
-		int seuilBas;
-	public:
-		hysteresis();
-		void setUp(int aSeuilBas,  int aSeuilHaut);
-		void setValue(int value);
-		int getState();
-};
-
-
 
 analogSensor::analogSensor(byte aPin)
 {
@@ -188,6 +113,25 @@ int analogSensor::stateHasRising()
 		return 0;
 	}
 }
+
+
+class digitalSensor
+{
+	private:
+		byte pin;
+		int modeInverse;
+		int previousState;
+		int currentState;
+		boolean hasRising;
+		boolean hasChanged;
+	public:
+		digitalSensor(byte aPin);
+		void setUp(int aModeInverse);
+		int getState();
+		void setPreviousState();
+		int stateHasChanged();
+		int stateHasRising();
+};
 
 digitalSensor::digitalSensor(byte aPin)
 {
@@ -272,6 +216,20 @@ int digitalSensor::stateHasRising()
 }
 
 
+class lampe
+{
+	private:
+		byte pin;
+		byte value;
+		void refresh();
+	public:
+		lampe(byte aPin);
+		void setUp();
+		void switchOn();
+		void switchOff();
+		void setInstensity(int intensityRequested);
+};
+
 lampe::lampe(byte aPin)
 {
 	pin = aPin;
@@ -312,6 +270,19 @@ void lampe::refresh()
 	analogWrite(pin, value);
 }
 
+class binaryLampe
+{
+	private:
+		byte pin;
+		byte state;
+	public:
+		binaryLampe(byte aPin);
+		void setUp();
+		void switchOn();
+		void switchOff();
+		int getState();
+};
+
 binaryLampe::binaryLampe(byte aPin)
 {
 	pin = aPin;
@@ -339,6 +310,21 @@ int binaryLampe::getState()
 {
 	return int(state);
 }
+
+class timer
+{
+	private:
+		unsigned int delayValue;
+		unsigned int delayCurrent;
+		unsigned long initTime;
+		unsigned long currentMillis;
+		boolean end;
+	public:
+		timer(int aDelayValue);
+		void init();
+		int timeIsUp();
+		int getDelay();
+};
 
 timer::timer(int aDelayValue)
 {
@@ -503,7 +489,6 @@ void setup()
 		Serial.begin(9600);
 		Serial.println("Fin du setUp !");
 	}
-	Serial.begin(9600);
 }
 
 void loop()
@@ -541,12 +526,10 @@ void loop()
 			if (axeX.getState() == 1 || axeY.getState() == 1 || axeZ.getState() == 1) // Si un mouvement détecté sur l'un des trois axe
 			{
 				mouvement = true;
-				Serial.println("Mouvement detecte");
 			}
 			else
 			{
 				mouvement = false;
-				Serial.println("AUCUN mvt detecte");
 			}
 		}
 		// Lecture des données provenant de l'accléromètre.end
